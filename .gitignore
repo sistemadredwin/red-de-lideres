@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Datos reales: NUNCA al repositorio
+*.xlsx
+*.xls
+*.csv
+datos-reales/

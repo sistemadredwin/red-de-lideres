@@ -273,6 +273,7 @@ language plpgsql volatile security definer set search_path = '' as $$
 declare
   v_ced    text := public._normalizar_cedula(p_cedula);
   v_lider  public.perfiles;
+  v_comuna_id int;
   v_id     bigint;
   v_orig   public.votantes;
 begin
@@ -297,8 +298,9 @@ begin
   if not found then
     return jsonb_build_object('resultado', 'error', 'motivo', 'Líder no válido');
   end if;
-  if not exists (select 1 from public.barrios where id = p_barrio_id and comuna_id = v_lider.comuna_id) then
-    return jsonb_build_object('resultado', 'error', 'motivo', 'El barrio no pertenece a la comuna del líder');
+  select comuna_id into v_comuna_id from public.barrios where id = p_barrio_id;
+  if not found then
+    return jsonb_build_object('resultado', 'error', 'motivo', 'Barrio no válido');
   end if;
   if not exists (select 1 from public.puestos_votacion where id = p_puesto_id) then
     return jsonb_build_object('resultado', 'error', 'motivo', 'Puesto de votación no válido');
@@ -306,7 +308,7 @@ begin
 
   insert into public.votantes (cedula, nombre_completo, telefono, comuna_id, barrio_id,
                                puesto_id, mesa, origen, verificado, autorizo_datos, registrado_por)
-  values (v_ced, btrim(p_nombre), nullif(btrim(coalesce(p_telefono, '')), ''), v_lider.comuna_id,
+  values (v_ced, btrim(p_nombre), nullif(btrim(coalesce(p_telefono, '')), ''), v_comuna_id,
           p_barrio_id, p_puesto_id, nullif(btrim(coalesce(p_mesa, '')), ''), p_origen,
           (p_origen <> 'qr'), true, v_lider.id)
   on conflict (cedula) do nothing
@@ -368,7 +370,7 @@ create function public.importar_votantes(p_lider uuid, p_filas jsonb, p_autorizo
 returns jsonb
 language plpgsql volatile security definer set search_path = '' as $$
 declare
-  v_yo uuid := public.mi_id(); v_comuna int; f jsonb; r jsonb;
+  v_yo uuid := public.mi_id(); f jsonb; r jsonb;
   v_barrio int; v_puesto int;
   n_ok int := 0; n_dup int := 0; n_err int := 0; v_errs jsonb := '[]';
 begin
@@ -380,13 +382,14 @@ begin
   end if;
   if jsonb_typeof(p_filas) <> 'array' then raise exception 'Formato de filas inválido'; end if;
   if jsonb_array_length(p_filas) > 2000 then raise exception 'Máximo 2000 filas por lote'; end if;
-  select comuna_id into v_comuna from public.perfiles
-   where id = p_lider and activo and rol in ('lider_comuna', 'lider_barrio');
-  if not found then raise exception 'Líder no válido'; end if;
+  if not exists (select 1 from public.perfiles
+                  where id = p_lider and activo and rol in ('lider_comuna', 'lider_barrio')) then
+    raise exception 'Líder no válido';
+  end if;
 
   for f in select * from jsonb_array_elements(p_filas) loop
     select id into v_barrio from public.barrios
-     where comuna_id = v_comuna and public._clave(nombre) = public._clave(f->>'barrio') limit 1;
+     where public._clave(nombre) = public._clave(f->>'barrio') limit 1;
     select id into v_puesto from public.puestos_votacion
      where public._clave(nombre) = public._clave(f->>'puesto') limit 1;
     if v_barrio is null and btrim(coalesce(f->>'barrio', '')) <> '' then
@@ -422,9 +425,11 @@ begin
   select nombre into v_comuna from public.comunas where id = v.comuna_id;
   return jsonb_build_object(
     'resultado', 'ok', 'lider', v.nombre_completo, 'comuna', v_comuna,
-    'barrios', coalesce((select jsonb_agg(jsonb_build_object('id', b.id, 'nombre', b.nombre) order by b.nombre)
-                           from public.barrios b where b.comuna_id = v.comuna_id), '[]'),
-    'puestos', coalesce((select jsonb_agg(jsonb_build_object('id', p.id, 'nombre', p.nombre) order by p.nombre)
+    'barrios', coalesce((select jsonb_agg(jsonb_build_object('id', b.id, 'nombre', b.nombre, 'detalle', c.nombre)
+                                            order by c.id, b.nombre)
+                           from public.barrios b
+                           join public.comunas c on c.id = b.comuna_id), '[]'),
+    'puestos', coalesce((select jsonb_agg(jsonb_build_object('id', p.id, 'nombre', p.nombre, 'detalle', p.direccion) order by p.nombre)
                            from public.puestos_votacion p), '[]'));
 end $$;
 

@@ -113,7 +113,27 @@ th { color: var(--texto-suave); font-size: 0.8rem; }
 .formulario { display: grid; gap: 14px; max-width: 760px; }
 .formulario .boton { justify-self: start; }
 .formulario select, .formulario textarea, .filtros select, .filtros input { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 8px; background: #fff; color: var(--texto); }
-.formulario input[type="text"], .formulario input[type="tel"], .formulario input[type="password"], .formulario input[type="number"], .formulario input[type="file"] { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 8px; background: #fff; color: var(--texto); }
+.formulario input[type="text"], .formulario input[type="tel"], .formulario input[type="password"], .formulario input[type="number"], .formulario input[type="file"], .formulario input[type="search"] { width: 100%; min-height: 44px; font: inherit; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 8px; background: #fff; color: var(--texto); }
+.formulario-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.formulario-grid > label, .campo-catalogo { min-width: 0; align-content: start; }
+.campo-catalogo { position: relative; display: grid; gap: 4px; }
+.campo-catalogo > input { width: 100%; min-height: 44px; font: inherit; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 8px; background: #fff; color: var(--texto); }
+.campo-catalogo > input:focus { outline: 3px solid rgba(31, 122, 61, 0.2); border-color: var(--verde); }
+.campo-catalogo-sugerencias { position: absolute; z-index: 5; top: calc(100% - 24px); left: 0; right: 0; display: grid; max-height: 260px; overflow-y: auto; border: 1px solid var(--borde); border-radius: 8px; background: #fff; box-shadow: 0 8px 20px rgba(28, 42, 33, 0.14); }
+.campo-catalogo-opcion { display: grid; gap: 2px; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--borde); background: #fff; color: var(--texto); font: inherit; text-align: left; cursor: pointer; }
+.campo-catalogo-opcion:last-child { border-bottom: 0; }
+.campo-catalogo-opcion:hover, .campo-catalogo-opcion:focus-visible { background: var(--suave); outline: none; }
+.campo-catalogo-detalle, .campo-catalogo-ayuda { color: var(--texto-suave); font-size: 0.82rem; }
+.campo-catalogo-ayuda { min-height: 1.2em; margin: 0; }
+.formulario > .error { grid-column: 1 / -1; }
+.confirmacion-registro { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "encabezado" "autorizacion" "boton"; gap: 9px; min-width: 0; padding: 4px 0 0; border: 0; background: transparent; }
+.confirmacion-registro-encabezado { grid-area: encabezado; min-width: 0; }
+.confirmacion-registro h2 { margin: 0; color: var(--texto); font-size: 0.95rem; font-weight: 650; }
+.confirmacion-registro-check { grid-area: autorizacion; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 8px; min-width: 0; padding: 8px 0; border: 0; background: transparent; font-size: 0.88rem; line-height: 1.45; cursor: pointer; }
+.confirmacion-registro-check input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--verde); }
+.confirmacion-registro-boton, .formulario .confirmacion-registro-boton { grid-area: boton; width: 100%; min-width: 0; min-height: 44px; justify-self: stretch; padding: 9px 16px; font-size: 0.92rem; white-space: normal; }
+.confirmacion-registro-boton:not(:disabled):hover { background: var(--verde-oscuro); }
+.confirmacion-registro-boton:focus-visible { outline: 3px solid rgba(31, 122, 61, 0.35); outline-offset: 3px; }
 .filtros { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .filtros input, .filtros select { flex: 1 1 180px; }
 .aviso { padding: 10px 12px; border-radius: 8px; background: #fff6cc; color: #6a4d00; margin-bottom: 12px; }
@@ -126,7 +146,7 @@ th { color: var(--texto-suave); font-size: 0.8rem; }
 .etiqueta { display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 10px; background: var(--suave); color: var(--texto-suave); font-size: 0.75rem; }
 .etiqueta.advertencia { background: #fff6cc; color: #6a4d00; }
 .nota { color: var(--texto-suave); font-size: 0.85rem; }
-.publico { width: min(100% - 32px, 560px); margin: 0 auto; padding: 28px 0; }
+.publico { width: min(100% - 32px, 760px); margin: 0 auto; padding: 28px 0; }
 .marca-publica { display: inline-block; margin-bottom: 20px; color: var(--verde-oscuro); font-weight: 800; font-size: 1.15rem; text-decoration: none; }
 .centrado { text-align: center; }
 .qr-imagen { width: min(100%, 280px); height: auto; background: #fff; padding: 10px; border: 1px solid var(--borde); border-radius: 10px; }
@@ -148,4 +168,10 @@ th { color: var(--texto-suave); font-size: 0.8rem; }
   .lateral nav a { white-space: nowrap; }
   .contenido { padding: 18px; }
   .qr-panel { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 640px) {
+  .formulario-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .confirmacion-registro { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "encabezado boton" "autorizacion boton"; align-items: center; gap: 4px 16px; }
+  .confirmacion-registro-boton, .formulario .confirmacion-registro-boton { width: auto; min-width: 140px; justify-self: end; }
 }

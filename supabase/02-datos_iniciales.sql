@@ -1,6 +1,7 @@
 -- =====================================================================
 --  RED DE LÍDERES · Datos iniciales (ejecutar DESPUÉS del esquema)
 --  Generado desde tu Excel: 12 comunas y 104 barrios de Buenaventura.
+--  Se puede volver a ejecutar sin duplicar registros del catálogo.
 --  Al importar votantes, el nombre del barrio puede variar en mayúsculas
 --  y tildes, pero no en letras (ver _clave en el esquema).
 -- =====================================================================
@@ -17,7 +18,8 @@ insert into public.comunas (nombre) values
   ('Comuna 9'),
   ('Comuna 10'),
   ('Comuna 11'),
-  ('Comuna 12');
+  ('Comuna 12')
+on conflict (nombre) do nothing;
 insert into public.barrios (comuna_id, nombre)
 select c.id, b.nombre
   from (values
@@ -126,11 +128,99 @@ select c.id, b.nombre
     ('Comuna 12', 'BRISAS DEL PACIFICO'),
     ('Comuna 12', '12 DE OCTUBRE')
   ) as b(comuna, nombre)
-  join public.comunas c on c.nombre = b.comuna;
+  join public.comunas c on c.nombre = b.comuna
+on conflict (comuna_id, nombre) do nothing;
 
--- PUESTOS DE VOTACIÓN: pendientes (el Excel no los trae).
--- insert into public.puestos_votacion (nombre, direccion) values
---   ('<Nombre del puesto>', null);
+insert into public.puestos_votacion (nombre, direccion) values
+  ('IE SAN RAFAEL', 'KR 6 #6-45'),
+  ('IE PASCUAL DE ANDAGOYA', 'CL 9 #5-18'),
+  ('COLISEO CUBIIERTO ROBERTO LOZANO BATALLA', 'CLL 9 # 2-2'),
+  ('IE FRANCISCO JOSE DE CALDAS', 'CRA 19 # 4A-03'),
+  ('FUND EDUC Y SOCIAL ANA VIC', 'CRA 19 . BARRIO LLERAS'),
+  ('INSTITUTO EDUCATIVO GREGORIANO', 'CRA 19 # 1B-25'),
+  ('INSTITUTO SILVIA ZAYNAB', 'CRA 17 NUM 2 20'),
+  ('IE REPUBLICA DE VENEZUELA', 'KRA 11 # 1-04'),
+  ('CENTRO DOCENTE NELSON MANDELA', 'CRA 17 CON CLL 3 No 3A-41'),
+  ('CAMINANTES DEL FUTURO', 'CRA 21 # 4-20 B. PALOSECO'),
+  ('IE LA ANUNCIACION (IFA)', 'CL7 #29-50'),
+  ('POLIDEPORTIVO B/ ALBERTO LLERAS CAMARGO', 'CRA 17F 1B66 BARRIO LLERAS'),
+  ('IE JOSE RAMON BEJARANO', 'CLL 7 #41A23'),
+  ('CASETA COMUNAL EL ORIENTE', 'CL 10 # 47-01'),
+  ('IE JUAN JOSE RONDON', 'KR 38 #2-24'),
+  ('COLEGIO PATRICIO SYMES', 'CL 6 #40A-58'),
+  ('ESCUELA SAN BUENAVENTURA', 'CRA50 NUM 7A 79'),
+  ('COLEGIO JHON F KENNEDY', 'CRA 32 4B 26'),
+  ('IE JOSE RAMON BEJARANO SEDE LA COMUNA', 'CRA 47 No 7A-44'),
+  ('IE TEOFILO ROBERTO POTES', 'CRA 47 #5-17'),
+  ('IE TERMARIT', 'CL 4 KR 53 # 53-72'),
+  ('IE LICEO DEL PACIFICO', 'KR 6 #2-24'),
+  ('IE SAN MARTIN DE PORRAS', 'KR 65 # 1-03'),
+  ('IE JOSE MARIA CABAL', 'KR 62 # 11-03'),
+  ('IE LAS AMERICAS', 'KR 65 # 6B06'),
+  ('PARROQUIA CRISTO REDENTOR', 'KR 69 #69-68'),
+  ('COORPORACION EDUCATIVA CER', 'CRA 68 CL 5A NUM 5 12'),
+  ('IE SIMON BOLIVAR', 'CL 4 # 60-61'),
+  ('COLEG. ANTONIO NARIÑO', 'CL 65 56-360'),
+  ('IE LOS GRANADINOS', 'KR 73 CL 4 SUR'),
+  ('CASETA COMUNAL UNION DE VIVIEN', 'KR 75 CL 5'),
+  ('IE EMILIO CARVAJAL', 'TRNV 87 # 35-40'),
+  ('IE LA NUEVA ESPERANZA', 'KR 80 #60-50 LA GLORIA'),
+  ('CTRO EDUC. EUSEBIO ANGULO', 'CLL 3 No 88-62 BARRIO LA LIBERTAD'),
+  ('INSTITUCION EDUCATIVA SAN ANTONIO', 'CIUDADELA SAN ANTONIO'),
+  ('CASETA COMUNAL BARRIO CALDAS', 'CLL 4B TRANV 81 ESQUINA'),
+  ('INST.TEC.IND.GERARDO VALENCIA', 'AV SIMON BOLIVAR KL.9'),
+  ('CARCEL', 'CL 6 #51B-61 AV SIMON BOLIVAR'),
+  ('BAJO CALIMA', 'CASETA COMUNAL BAJO CALIMA'),
+  ('LA TROJITA', 'ESC. VDA SAN ISIDRO'),
+  ('BOCAS DEL SAN JUAN', 'ESC. LADRILLEROS TURISTICO'),
+  ('LA PLATA', 'CASETA COMUNAL LA PLATA'),
+  ('MALAGA', 'ESC. JUANCHACO'),
+  ('PUERTO ESPAÑA', 'CASETA DE MADERA'),
+  ('LA BOCANA', 'CASETA COMUNAL LA BOCANA'),
+  ('PUNTA SOLDADO', 'ESC. PUNTA DE SOLDADO'),
+  ('BOCAS DE CALIMA', 'ESC. BOCAS DEL CALIMA'),
+  ('CAMPO HERMOSO', 'SALON COMUNAL'),
+  ('GUADUALITO', 'ESC. ANTONIO RICAUTE'),
+  ('ALTO POTEDO', 'ESC. DE POTEDO (PARTE MARITIMA)'),
+  ('AGUACLARA', 'ESC. ANTONIO SANTOS'),
+  ('LADRILLEROS', 'ESC. JUAN DE LADRILLEROS'),
+  ('LLANOBAJO', 'ESC. NUEVA GRANADA'),
+  ('SAN MARCOS', 'CASETA COMUNAL SAN MARCOS'),
+  ('LIMONES', 'CASETA COMUNAL'),
+  ('ZABALETAS', 'ESC. SAN ANTONIO'),
+  ('ZACARIAS', 'CASETA COMUNAL'),
+  ('SAN JOSE (ANCHICAYA)', 'ESC. SAN JOSE'),
+  ('TAPARAL', 'ESC. TAPARAL'),
+  ('CARACOLI (CACOLI)', 'ESC. CACOLI'),
+  ('EL TIGRE', 'ESC. GABRIELA MISTRAL'),
+  ('CALLE HONDA', 'ESC. SAN JOSE'),
+  ('SAN FRANCISCO JAVIER', 'ESC. SAN FRANCISCO JAVIER'),
+  ('EL PITAL', 'ESC. SAN LUIS GONZAGA'),
+  ('MAYORQUIN', 'ESC. FRANCO CISENOROS'),
+  ('PAPAYAL', 'CASETA COMUNAL'),
+  ('BARCOS', 'ESC. PETRONIO ALVAREZ'),
+  ('SAN ISIDRO', 'ESC. JOSE ACEVEDO'),
+  ('SILVA', 'ESC. SAN JOSE JOAQUIN'),
+  ('SAN ANTONIO (YURUMANGUI)', 'ESC. SAN JOSE'),
+  ('VENERAL', 'INSP DE POLICIA'),
+  ('SAN JOSE (YURUMANGUI)', 'ESC. SAN JOSE'),
+  ('JUNTAS (YURUMANGUI)', 'ESC. YURUMANGUI'),
+  ('EL PASTICO', 'ESC. EDUARDO SANTOS'),
+  ('PUERTO MERIZALDE', 'ESCUELA PUERTO MERIZALDE'),
+  ('SAN PEDRO DE NAYA', 'ESC. SAN PEDRO DE NAYA'),
+  ('EL CARMEN', 'ESC. EL CARMEN'),
+  ('SAN FRANCISCO DE NAYA', 'ESC. SANTA CECILIA'),
+  ('LA CONCEPCION', 'ESC. LA CONCEPCION'),
+  ('NICOLAS RAMOS HIDALGO', 'ESC. NICOLAS RAMOS HIDALGO'),
+  ('PUERTO NAYA', 'ESC. PUERTO NAYA'),
+  ('SAN LORENZO', 'ESC. SAN LORENZO'),
+  ('CORDOBA', 'CASETA COMUNAL CORDOBA'),
+  ('TRIANA', 'CASETA COMUNAL TRIANA'),
+  ('LA DELFINA', 'SALON COMUNAL'),
+  ('CISNEROS', 'SALON COMUNAL'),
+  ('CABECERAS DEL RIO SAN JUAN', 'ESC. CABECERAS')
+on conflict (nombre) do update
+  set direccion = excluded.direccion;
 
 -- COMPROBACIÓN: debe dar 12 comunas y 104 barrios
 select (select count(*) from public.comunas) as comunas,

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import FormularioPublico from "./FormularioPublico";
+import type { OpcionCatalogo } from "@/components/CampoCatalogo";
 
-type Opcion = { id: number; nombre: string };
 type InfoQr =
   | { resultado: "codigo_invalido" }
-  | { resultado: "ok"; lider: string; comuna: string; barrios: Opcion[]; puestos: Opcion[] };
+  | { resultado: "ok"; lider: string; comuna: string; barrios: OpcionCatalogo[]; puestos: OpcionCatalogo[] };
 
 export default async function PaginaQrPublico({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

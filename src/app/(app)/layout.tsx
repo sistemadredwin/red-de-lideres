@@ -2,6 +2,7 @@ import Link from "next/link";
 import { exigirSesionActiva } from "@/lib/sesion";
 import { opcionesParaRol } from "@/lib/menu";
 import { ETIQUETA_ROL } from "@/lib/tipos";
+import Navegacion from "./Navegacion";
 import { cerrarSesion } from "./acciones";
 
 export default async function LayoutApp({ children }: { children: React.ReactNode }) {
@@ -11,12 +12,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
   return (
     <div className="app">
       <aside className="lateral">
-        <div className="marca">Red de Líderes</div>
-        <nav>
-          {opciones.map((o) => (
-            <Link key={o.href} href={o.href}>{o.etiqueta}</Link>
-          ))}
-        </nav>
+        <Link className="marca" href="/inicio">Red de Líderes</Link>
+        <Navegacion opciones={opciones} />
         <div className="quien">
           <strong>{perfil.nombre_completo}</strong>
           <span>{ETIQUETA_ROL[perfil.rol]}{perfil.grupo ? ` · ${perfil.grupo}` : ""}</span>

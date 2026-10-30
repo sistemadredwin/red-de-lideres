@@ -14,9 +14,14 @@ export interface Perfil {
   id: string;
   usuario: string;
   nombre_completo: string;
+  area: string | null;
   rol: Rol;
   grupo: string | null;
   comuna_id: number | null;
+  barrio_id: number | null;
+  supervisor_id: string | null;
+  meta: number;
+  qr_activo: boolean;
   activo: boolean;
   debe_cambiar_clave: boolean;
   clave_vence_at: string | null;

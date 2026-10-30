@@ -16,7 +16,7 @@ export const obtenerSesion = cache(async (): Promise<Perfil | null> => {
 
   const { data } = await crearClienteAdmin()
     .from("perfiles")
-    .select("id, usuario, nombre_completo, rol, grupo, comuna_id, activo, debe_cambiar_clave, clave_vence_at")
+    .select("id, usuario, nombre_completo, area, rol, grupo, comuna_id, barrio_id, supervisor_id, meta, qr_activo, activo, debe_cambiar_clave, clave_vence_at")
     .eq("auth_id", user.id)
     .maybeSingle();
 

@@ -63,6 +63,7 @@ create table public.perfiles (
   nombre_completo text not null check (btrim(nombre_completo) <> ''),
   telefono        text,
   correo          text,
+  area            text,
   rol             public.rol_usuario not null,
   grupo           text check (grupo in ('G8')),
   comuna_id       int  references public.comunas(id),
@@ -671,7 +672,7 @@ grant select on public.comunas, public.barrios, public.puestos_votacion,
                 public.avance_lideres, public.resumen_puestos, public.duplicados_detalle
   to authenticated;
 -- perfiles: se listan las columnas permitidas; token_qr queda fuera a propósito
-grant select (id, auth_id, usuario, cedula, nombre_completo, telefono, correo, rol, grupo,
+grant select (id, auth_id, usuario, cedula, nombre_completo, telefono, correo, area, rol, grupo,
               comuna_id, barrio_id, supervisor_id, meta, qr_activo, debe_cambiar_clave,
               clave_vence_at, activo, created_at, updated_at)
   on public.perfiles to authenticated;

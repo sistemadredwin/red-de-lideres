@@ -1,64 +1,71 @@
-import { redirect } from "next/navigation";
-import { exigirSesionActiva } from "@/lib/sesion";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
-import { revisarDuplicado } from "../acciones-votantes";
+import BotonAccion from "@/components/BotonAccion";
+import Encabezado from "@/components/Encabezado";
+import Paginador from "@/components/Paginador";
+import { revisarDuplicado } from "@/app/actions/votantes";
+import { requirePerfil } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
+import { POR_PAGINA, fechaCorta, paginaDe } from "@/lib/util";
 
-type Duplicado = {
+export const metadata = { title: "Duplicados · Red de Líderes" };
+
+const ORIGEN = { manual: "Formulario", excel: "Excel", qr: "QR" } as const;
+
+interface Fila {
   id: number;
   cedula: string;
   votante: string;
   registro_primero: string;
   intento_registrar: string;
-  origen: "manual" | "excel" | "qr";
+  origen: keyof typeof ORIGEN;
   created_at: string;
   revisado: boolean;
-};
+}
 
-export default async function PaginaDuplicados() {
-  const perfil = await exigirSesionActiva();
-  if (perfil.rol !== "admin") redirect("/inicio");
-  const supabase = await crearClienteServidor();
-  const { data, error } = await supabase.from("duplicados_detalle")
-    .select("id, cedula, votante, registro_primero, intento_registrar, origen, created_at, revisado")
-    .order("created_at", { ascending: false }).limit(500);
-  if (error) throw new Error(`No se pudieron cargar los duplicados: ${error.message}`);
+export default async function Duplicados({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  await requirePerfil(["admin"]);
+  const pagina = paginaDe((await searchParams).pagina);
+  const supabase = await createClient();
+  const desde = (pagina - 1) * POR_PAGINA;
+  const { data, count } = await supabase
+    .from("duplicados_detalle")
+    .select("id, cedula, votante, registro_primero, intento_registrar, origen, created_at, revisado", { count: "exact" })
+    .order("revisado", { ascending: true })
+    .order("created_at", { ascending: false })
+    .range(desde, desde + POR_PAGINA - 1);
+  const filas = (data ?? []) as Fila[];
 
-  const duplicados = (data ?? []) as Duplicado[];
-  const pendientes = duplicados.filter((item) => !item.revisado).length;
   return (
     <>
-      <h1>Duplicados</h1>
-      <p className="subtitulo">Intentos repetidos de registro. El votante original no se modifica.</p>
-      <section className="panel">
-        <h2>{pendientes} pendientes</h2>
-        {duplicados.length ? (
-          <div className="tabla-contenedor">
+      <Encabezado titulo="Cédulas repetidas" detalle="Cada fila es un intento de registrar a alguien que ya estaba en el sistema. Solo la administración ve esta pantalla." />
+      <div className="card">
+        {filas.length === 0 ? (
+          <div className="empty">No hay duplicados. Todo está limpio.</div>
+        ) : (
+          <div className="scroll">
             <table>
-              <thead><tr><th>Cédula</th><th>Votante existente</th><th>Registro original</th><th>Intento nuevo</th><th>Origen</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
+              <thead>
+                <tr><th>Cédula</th><th>Nombre</th><th>La registró primero</th><th>Intentó registrarla</th><th>Por</th><th>Fecha</th><th></th></tr>
+              </thead>
               <tbody>
-                {duplicados.map((duplicado) => (
-                  <tr key={duplicado.id}>
-                    <td>{duplicado.cedula}</td>
-                    <td>{duplicado.votante}</td>
-                    <td>{duplicado.registro_primero}</td>
-                    <td>{duplicado.intento_registrar}</td>
-                    <td>{duplicado.origen.toUpperCase()}</td>
-                    <td>{new Date(duplicado.created_at).toLocaleString("es-CO")}</td>
-                    <td>{duplicado.revisado ? "Revisado" : "Pendiente"}</td>
+                {filas.map((f) => (
+                  <tr key={f.id} className={`dup${f.revisado ? " done" : ""}`}>
+                    <td>{f.cedula}</td>
+                    <td>{f.votante}</td>
+                    <td>{f.registro_primero}</td>
+                    <td>{f.intento_registrar}</td>
+                    <td>{ORIGEN[f.origen]}</td>
+                    <td>{fechaCorta(f.created_at)}</td>
                     <td>
-                      <form action={revisarDuplicado}>
-                        <input type="hidden" name="id" value={duplicado.id} />
-                        <input type="hidden" name="revisado" value={String(!duplicado.revisado)} />
-                        <button className="boton pequeno secundario" type="submit">{duplicado.revisado ? "Reabrir" : "Marcar revisado"}</button>
-                      </form>
+                      <BotonAccion texto={f.revisado ? "Reabrir" : "Marcar revisado"} accion={revisarDuplicado.bind(null, f.id, !f.revisado)} clase="btn small ghost" />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        ) : <p className="vacio">No hay intentos duplicados registrados.</p>}
-      </section>
+        )}
+        <Paginador ruta="/duplicados" pagina={pagina} total={count ?? 0} porPagina={POR_PAGINA} filtros={{}} />
+      </div>
     </>
   );
 }

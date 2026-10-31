@@ -1,34 +1,28 @@
-import { redirect } from "next/navigation";
-import { exigirSesionActiva } from "@/lib/sesion";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
-import ImportadorCsv from "./ImportadorCsv";
+import Encabezado from "@/components/Encabezado";
+import ImportarExcel from "@/components/ImportarExcel";
+import { requirePerfil } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 
-type LiderFila = { id: string; nombre_completo: string; comuna_id: number | null };
-type Comuna = { id: number; nombre: string };
+export const metadata = { title: "Importar lista · Red de Líderes" };
 
-export default async function PaginaImportar() {
-  const perfil = await exigirSesionActiva();
-  if (perfil.rol !== "admin") redirect("/inicio");
-  const supabase = await crearClienteServidor();
-  const [lideresQuery, comunasQuery] = await Promise.all([
-    supabase.from("perfiles").select("id, nombre_completo, comuna_id")
-      .in("rol", ["lider_comuna", "lider_barrio"]).eq("activo", true).order("nombre_completo"),
+export default async function Importar() {
+  await requirePerfil(["admin"]);
+  const supabase = await createClient();
+  const [{ data: lideres }, { data: comunas }] = await Promise.all([
+    supabase.from("perfiles").select("id, nombre_completo, comuna_id").in("rol", ["lider_comuna", "lider_barrio"]).eq("activo", true).order("nombre_completo"),
     supabase.from("comunas").select("id, nombre"),
   ]);
-  if (lideresQuery.error) throw new Error(`No se pudieron cargar los líderes: ${lideresQuery.error.message}`);
-  if (comunasQuery.error) throw new Error(`No se pudieron cargar las comunas: ${comunasQuery.error.message}`);
-  const comunas = new Map(((comunasQuery.data ?? []) as Comuna[]).map((comuna) => [comuna.id, comuna.nombre]));
-  const lideres = ((lideresQuery.data ?? []) as LiderFila[]).map((lider) => ({
-    id: lider.id,
-    nombre_completo: lider.nombre_completo,
-    comuna: lider.comuna_id ? comunas.get(lider.comuna_id) ?? "Sin comuna" : "Sin comuna",
-  }));
+  const nombreComuna = new Map((comunas ?? []).map((c) => [c.id, c.nombre]));
+  const opciones = (lideres ?? []).map((l) => ({ id: l.id, nombre: l.nombre_completo, comuna: nombreComuna.get(l.comuna_id) ?? "" }));
 
   return (
     <>
-      <h1>Importar lista</h1>
-      <p className="subtitulo">Carga registros autorizados desde un CSV exportado de Excel.</p>
-      <ImportadorCsv lideres={lideres} />
+      <Encabezado titulo="Importar lista" detalle="Sube un archivo de Excel con los votantes de un líder. Antes de guardar, verás qué filas son nuevas, repetidas o tienen errores." />
+      {opciones.length === 0 ? (
+        <div className="card"><div className="empty">Primero crea al menos un líder en Personal.</div></div>
+      ) : (
+        <ImportarExcel lideres={opciones} />
+      )}
     </>
   );
 }

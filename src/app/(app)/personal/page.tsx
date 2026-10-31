@@ -1,91 +1,85 @@
-import { redirect } from "next/navigation";
-import { exigirSesionActiva } from "@/lib/sesion";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
-import { ETIQUETA_ROL, type Rol } from "@/lib/tipos";
-import FormularioPersona from "./FormularioPersona";
-import AccesoTemporal from "./AccesoTemporal";
-import { cambiarMeta } from "../acciones-votantes";
-import { cambiarActivoPersona } from "./acciones";
+import Encabezado from "@/components/Encabezado";
+import FilaPersona, { type PersonaFila } from "@/components/FilaPersona";
+import FormPersona from "@/components/FormPersona";
+import Link from "next/link";
+import { requirePerfil } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
+import { ROL_LABEL, type Rol } from "@/lib/types";
+import { fechaCorta, textoDe } from "@/lib/util";
 
-type Persona = {
+export const metadata = { title: "Personal · Red de Líderes" };
+
+interface Fila {
   id: string;
   auth_id: string | null;
   usuario: string;
-  cedula: string;
+  grupo: "G8" | null;
+  debe_cambiar_clave: boolean;
+  clave_vence_at: string | null;
   nombre_completo: string;
-  area: string | null;
   rol: Rol;
-  grupo: string | null;
-  comuna_id: number | null;
-  supervisor_id: string | null;
   meta: number;
   activo: boolean;
-};
-type Comuna = { id: number; nombre: string };
+  supervisor_id: string | null;
+  comunas: { nombre: string } | null;
+}
 
-export default async function PaginaPersonal() {
-  const perfil = await exigirSesionActiva();
-  if (perfil.rol !== "admin") redirect("/inicio");
-  const supabase = await crearClienteServidor();
-  const [personasQuery, comunasQuery] = await Promise.all([
-    supabase.from("perfiles")
-    .select("id, auth_id, usuario, cedula, nombre_completo, area, rol, grupo, comuna_id, supervisor_id, meta, activo")
-      .order("nombre_completo"),
+export default async function Personal({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const perfil = await requirePerfil(["admin"]);
+  const rolFiltro = textoDe((await searchParams).rol);
+  const supabase = await createClient();
+
+  let consulta = supabase.from("perfiles").select("id, auth_id, usuario, grupo, debe_cambiar_clave, clave_vence_at, nombre_completo, rol, meta, activo, supervisor_id, comunas(nombre)").order("nombre_completo").limit(500);
+  if (rolFiltro) consulta = consulta.eq("rol", rolFiltro);
+  const [{ data }, { data: comunas }, { data: lc }] = await Promise.all([
+    consulta,
     supabase.from("comunas").select("id, nombre").order("nombre"),
+    supabase.from("perfiles").select("id, nombre_completo, comunas(nombre)").eq("rol", "lider_comuna").eq("activo", true).order("nombre_completo"),
   ]);
-  if (personasQuery.error) throw new Error(`No se pudo cargar el personal: ${personasQuery.error.message}`);
-  if (comunasQuery.error) throw new Error(`No se pudieron cargar las comunas: ${comunasQuery.error.message}`);
-  const personas = (personasQuery.data ?? []) as Persona[];
-  const comunas = (comunasQuery.data ?? []) as Comuna[];
-  const nombresComuna = new Map(comunas.map((comuna) => [comuna.id, comuna.nombre]));
-  const supervisores = personas.filter((persona) => persona.rol === "lider_comuna" && persona.activo);
+
+  const filas = (data ?? []) as unknown as Fila[];
+  const nombrePorId = new Map(filas.map((f) => [f.id, f.nombre_completo]));
+  const personas: PersonaFila[] = filas.map((f) => ({
+    id: f.id,
+    usuario: f.usuario,
+    grupo: f.grupo,
+    clave: f.rol === "admin" ? "Clave sin vencimiento" : f.debe_cambiar_clave ? "Clave temporal: debe cambiarla" : f.clave_vence_at ? (new Date(f.clave_vence_at) <= new Date() ? "Clave vencida" : `Clave vence ${fechaCorta(f.clave_vence_at).split(",")[0]}`) : "",
+    nombre_completo: f.nombre_completo,
+    rol: f.rol,
+    meta: f.meta,
+    activo: f.activo,
+    tieneAcceso: f.auth_id !== null,
+    zona: f.comunas?.nombre ?? "—",
+    supervisor: f.supervisor_id ? (nombrePorId.get(f.supervisor_id) ?? "") : "",
+    esYo: f.id === perfil.id,
+  }));
+  const lideresComuna = ((lc ?? []) as unknown as { id: string; nombre_completo: string; comunas: { nombre: string } | null }[]).map((l) => ({
+    id: l.id,
+    nombre: `${l.nombre_completo} (${l.comunas?.nombre ?? ""})`,
+  }));
 
   return (
     <>
-      <h1>Personal del equipo</h1>
-      <p className="subtitulo">Administra roles, metas y accesos del equipo.</p>
-      <FormularioPersona comunas={comunas} supervisores={supervisores} />
-      <section className="panel">
+      <Encabezado titulo="Personal del equipo" detalle="Todo el equipo en un solo lugar. Cada persona que entra al sistema tiene su código de acceso y una contraseña que cambia cada 7 días." />
+      <FormPersona comunas={comunas ?? []} lideresComuna={lideresComuna} />
+      <div className="card">
         <h2>{personas.length} personas</h2>
-        <div className="tabla-contenedor">
+        <form className="tools" method="get" action="/personal">
+          <select name="rol" defaultValue={rolFiltro} aria-label="Filtrar por rol">
+            <option value="">Todos los roles</option>
+            {(Object.keys(ROL_LABEL) as Rol[]).map((r) => <option key={r} value={r}>{ROL_LABEL[r]}</option>)}
+          </select>
+          <button className="btn" type="submit">Filtrar</button>
+          {rolFiltro && <Link className="btn ghost" href="/personal">Limpiar</Link>}
+        </form>
+        <div className="scroll">
           <table>
-            <thead><tr><th>Nombre</th><th>Código</th><th>Cédula</th><th>Rol</th><th>Zona o área</th><th>Comuna</th><th>Grupo</th><th>Meta</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody>
-              {personas.map((persona) => (
-                <tr key={persona.id}>
-                  <td>{persona.nombre_completo}</td>
-                  <td>{persona.usuario}</td>
-                  <td>{persona.cedula}</td>
-                  <td>{ETIQUETA_ROL[persona.rol]}</td>
-                  <td>{persona.area ?? "—"}</td>
-                  <td>{persona.comuna_id ? nombresComuna.get(persona.comuna_id) ?? "—" : "—"}</td>
-                  <td>{persona.grupo ?? "—"}</td>
-                  <td>
-                    {persona.rol === "lider_comuna" || persona.rol === "lider_barrio" ? (
-                      <form action={cambiarMeta} className="acciones-form">
-                        <input type="hidden" name="perfil_id" value={persona.id} />
-                        <input name="meta" type="number" min={1} max={100000} defaultValue={persona.meta} aria-label={`Meta de ${persona.nombre_completo}`} />
-                        <button className="boton pequeno secundario" type="submit">Guardar</button>
-                      </form>
-                    ) : "—"}
-                  </td>
-                  <td>{persona.activo ? "Activo" : "Inactivo"}{persona.auth_id ? "" : " · Sin acceso"}</td>
-                  <td className="acciones-tabla">
-                    {persona.auth_id && persona.activo ? <AccesoTemporal perfilId={persona.id} /> : null}
-                    {persona.id !== perfil.id ? (
-                      <form action={cambiarActivoPersona}>
-                        <input type="hidden" name="perfil_id" value={persona.id} />
-                        <input type="hidden" name="activo" value={String(!persona.activo)} />
-                        <button className="boton pequeno secundario" type="submit">{persona.activo ? "Desactivar" : "Activar"}</button>
-                      </form>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+            <thead><tr><th>Nombre</th><th>Código de acceso</th><th>Rol</th><th>Zona</th><th>Meta</th><th>Estado</th><th></th></tr></thead>
+            <tbody>{personas.map((p) => <FilaPersona key={p.id} p={p} />)}</tbody>
           </table>
         </div>
-      </section>
+        {personas.length === 0 && <div className="empty">No hay personas con ese filtro.</div>}
+      </div>
     </>
   );
 }
